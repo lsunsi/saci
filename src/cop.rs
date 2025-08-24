@@ -1,8 +1,24 @@
-type Nil = std::convert::Infallible;
-type Any<T> = std::marker::PhantomData<T>;
-type Cop<A, B> = std::ops::ControlFlow<A, B>;
+pub type Nil = std::convert::Infallible;
+pub type Any<T> = std::marker::PhantomData<T>;
+pub type Cop<A, B> = std::ops::ControlFlow<A, B>;
 
-trait Take<Target, Index> {
+pub trait Init<Target, Index> {
+    fn init(t: Target) -> Self;
+}
+
+impl<Target, Tail> Init<Target, Nil> for Cop<Target, Tail> {
+    fn init(t: Target) -> Self {
+        Cop::Break(t)
+    }
+}
+
+impl<Target, Index, Head, Tail: Init<Target, Index>> Init<Target, Any<Index>> for Cop<Head, Tail> {
+    fn init(t: Target) -> Self {
+        Cop::Continue(Tail::init(t))
+    }
+}
+
+pub trait Take<Target, Index> {
     type Rest;
     fn take(self) -> Result<Target, Self::Rest>;
 }
@@ -33,7 +49,10 @@ impl<Target, Index, Head, Tail: Take<Target, Index>> Take<Target, Any<Index>> fo
 #[cfg(test)]
 mod tests {
     #[test]
-    fn works() {
+    fn init() {}
+
+    #[test]
+    fn take() {
         use std::ops::ControlFlow;
 
         type Cop = super::Cop<i32, super::Cop<&'static str, super::Cop<bool, super::Nil>>>;
